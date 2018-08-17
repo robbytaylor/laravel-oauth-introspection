@@ -4,6 +4,7 @@ namespace Ipunkt\Laravel\OAuthIntrospection\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Laravel\Passport\Bridge\AccessTokenRepository;
+use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Token;
@@ -31,22 +32,30 @@ class IntrospectionController
 	 */
 	private $accessTokenRepository;
 
+        /**
+         * @var \Laravel\Passport\ClientRepository
+         */
+        private $clientRepository;
+
 	/**
 	 * constructing IntrospectionController
 	 *
 	 * @param \Lcobucci\JWT\Parser $jwt
 	 * @param \League\OAuth2\Server\ResourceServer $resourceServer
 	 * @param \Laravel\Passport\Bridge\AccessTokenRepository $accessTokenRepository
+	 * @param \Laravel\Passport\ClientRepository
 	 */
 	public function __construct(
 		Parser $jwt,
 		ResourceServer $resourceServer,
-		AccessTokenRepository $accessTokenRepository
+		AccessTokenRepository $accessTokenRepository,
+                ClientRepository $clientRepository
 	)
 	{
 		$this->jwt = $jwt;
 		$this->resourceServer = $resourceServer;
 		$this->accessTokenRepository = $accessTokenRepository;
+                $this->clientRepository = $clientRepository;
 	}
 
 	/**
@@ -146,6 +155,10 @@ class IntrospectionController
 			if ($this->accessTokenRepository->isAccessTokenRevoked($token->getClaim('jti'))) {
 				return false;
 			}
+
+                        if ($this->clientRepository->revoked($token->getClaim('aud'))) {
+                            return false;
+                        }
 
 			return true;
 		} catch (\Exception $exception) {
